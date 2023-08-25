@@ -19,30 +19,32 @@ def main():
     # Read the data from the CSV file
     with open("ETH-USD.csv", "r") as f:
         reader = csv.reader(f)
+        next(reader)  # Skip the header row
         data = list(reader)
 
     # Create a pandas dataframe from the data
     df = pd.DataFrame(data, columns=["Date", "Open", "High", "Low", "Close", "Adj Close", "Volume"])
 
-    # Convert the Date column to a numeric column
-    df["Date"] = pd.to_datetime(df["Date"])
+    # Convert the Date column to datetime with the appropriate format
+    df["Date"] = pd.to_datetime(df["Date"], format='%Y-%m-%d')
 
     # Calculate the moving average for each price column
     for column in ["Open", "High", "Low", "Close"]:
         df["MA_" + column] = df[column].rolling(window=10).mean()
 
-    # Use the Polywrap client to invoke the wrapper to look for trends in the data
-    uri = Uri.from_str(
-        'wrapscan.io/polywrap/trend-detection'
-    )
+    # Convert the DataFrame to JSON format
+    data_json = df.to_json()
+
+    # Use the Polywrap client to invoke the wrapper to process the data
+    uri = Uri.from_str('wrapscan.io/polywrap/ipfs-http-client')  # Updated URI
     args = {
-        "data": df.to_json(),
+        "cid": "QmZ4d7KWCtH3xfWFwcdRXEkjZJdYNwonrCwUckGF1gRAH9",
+        "ipfsProvider": "https://ipfs.io",
     }
-    result = client.invoke(uri=uri, method="detect", args=args, encode_result=False)
+    result = client.invoke(uri=uri, method="cat", args=args, encode_result=False)
 
     # Print the results
     print(result)
-
 
 if __name__ == "__main__":
     main()
