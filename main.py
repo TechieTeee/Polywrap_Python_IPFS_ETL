@@ -1,55 +1,48 @@
-import polywrap
-
-from mlxtend.preprocessing import TransactionEncoder
-from mlxtend.frequent_patterns import apriori
-
+import csv
 import pandas as pd
+from polywrap_core import Uri, ClientConfig
+from polywrap_client import PolywrapClient
+from polywrap_client_config_builder import PolywrapClientConfigBuilder
+from polywrap_sys_config_bundle import sys_bundle
+from polywrap_web3_config_bundle import web3_bundle
 
-name = "main"
+def main():
+    # Configure and instantiate the client
+    builder = (
+        PolywrapClientConfigBuilder()
+        .add_bundle(sys_bundle)
+        .add_bundle(web3_bundle)
+    )
+    config = builder.build()
+    client = PolywrapClient(config)
 
-def group_transactions_by_association_rule_mining(data):
-  """
-  Group transactions together based on association rule mining.
+    # Read the data from the CSV file
+    with open("ETH-USD.csv", "r") as f:
+        reader = csv.reader(f)
+        data = list(reader)
 
-  Args:
-    data: The transaction data.
+    # Create a pandas dataframe from the data
+    df = pd.DataFrame(data, columns=["Date", "Open", "High", "Low", "Close", "Adj Close", "Volume"])
 
-  Returns:
-    A list of groups of transactions.
-  """
+    # Convert the Date column to a numeric column
+    df["Date"] = pd.to_datetime(df["Date"])
 
-  # Create a transaction encoder.
-  encoder = TransactionEncoder()
-  encoded_data = encoder.fit_transform(data)
+    # Calculate the moving average for each price column
+    for column in ["Open", "High", "Low", "Close"]:
+        df["MA_" + column] = df[column].rolling(window=10).mean()
 
-  # Create a frequent itemset object.
-  frequent_itemsets = apriori(encoded_data, min_support=0.05)
+    # Use the Polywrap client to invoke the wrapper to look for trends in the data
+    uri = Uri.from_str(
+        'wrapscan.io/polywrap/trend-detection'
+    )
+    args = {
+        "data": df.to_json(),
+    }
+    result = client.invoke(uri=uri, method="detect", args=args, encode_result=False)
 
-  # Create a dictionary of groups of transactions.
-  groups = {}
+    # Print the results
+    print(result)
 
-  for itemset in frequent_itemsets:
-    transactions = []
 
-    for row in data:
-      if all(item in row for item in itemset):
-        transactions.append(row["transaction_id"])
-
-    groups[itemset] = transactions
-
-  return groups
-
-binding = polywrap.create_binding(group_transactions_by_association_rule_mining)
-
-def etl_pipeline():
-  # Read the data from the CSV file.
-  data = pd.read_csv("ETH-USD.csv")
-
-  # Group transactions together based on association rule mining.
-  groups = binding(data)
-
-  # Print the groups.
-  print(groups)
-
-if name == "main":
-  etl_pipeline()
+if __name__ == "__main__":
+    main()
