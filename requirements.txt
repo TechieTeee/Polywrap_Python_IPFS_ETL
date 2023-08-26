@@ -1,6 +1,7 @@
 polywrap
 pandas
 csv
+io
 polywrap_core
 polywrap_sys_config_bundle
 polywrap_web3_config_bundle

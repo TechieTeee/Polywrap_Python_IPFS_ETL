@@ -1,4 +1,5 @@
 import csv
+import io
 import pandas as pd
 from polywrap_core import Uri, ClientConfig
 from polywrap_client import PolywrapClient
@@ -28,7 +29,7 @@ def main():
     retrieved_data = result.decode('utf-8')
 
     # Convert the retrieved data to a DataFrame
-    df = pd.read_csv(pd.compat.StringIO(retrieved_data))
+    df = pd.read_csv(io.StringIO(retrieved_data))
 
     # Perform necessary transformations and calculations on the DataFrame
     # Calculate moving averages for relevant columns
@@ -51,4 +52,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
